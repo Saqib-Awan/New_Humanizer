@@ -24,7 +24,7 @@ GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 # Function to communicate with Groq API
 def query_groq(prompt, api_key, temperature=0.8, max_tokens=2000):
-    model = "llama-3.3-70b-versatile"  # Best model for humanization on Groq
+    model = "llama-3.1-405b-reasoning"  # Upgraded to more advanced model for better humanization
     logging.info(f"Querying Groq with model: {model}")
     
     headers = {
@@ -66,111 +66,134 @@ def query_groq(prompt, api_key, temperature=0.8, max_tokens=2000):
             st.error(f"Response text: {e.response.text}")
         return None
 
-# Function to humanize text using Groq with an enhanced prompt
+# Enhanced function to humanize text using Groq with multi-pass refinement
 def humanize_text(text, api_key, temperature):
-    # Enhanced prompt for more natural, human-like text
-    prompt = f"""
-    Please rewrite the following text so that it sounds as if it were written naturally by a human. 
-    Transform the text to have an "Extreme" level of humanization. Follow these instructions closely:
-    
-    - Maintain the original meaning and information.
-    - Use varied sentence structures and lengths.
-    - Incorporate occasional filler words and conversational transitions.
-    - Use a mix of formal and informal language including contractions.
-    - Introduce slight redundancies and minor imperfections to emulate natural thought processes.
-    - Allow for tangential observations or asides that do not detract from the main message.
-    - Avoid overly structured or clinical formatting.
-    - Infuse personality and warmth in the wording.
-    
-    Here is the text to be rewritten:
-    
+    # Initial advanced prompt for deep humanization
+    initial_prompt = f"""
+    Rewrite this text to make it indistinguishable from human writing, evading AI detectors completely. 
+    Achieve 'Ultimate' humanization level by:
+    - Preserving all original meaning, facts, and intent.
+    - Using highly varied sentence lengths, structures, and rhythms to mimic natural thought flow.
+    - Incorporating subtle filler words, hesitations, idioms, colloquialisms, and contractions organically.
+    - Adding minor redundancies, asides, personal touches, or slight tangents that feel authentic without altering core content.
+    - Mixing vocabulary: common words with occasional sophisticated ones, avoiding repetitive patterns.
+    - Introducing natural imperfections like varied pacing, subtle opinions, or transitional phrases.
+    - Ensuring the text flows conversationally with warmth, personality, and genuine expression.
+    - Avoid perfect symmetry, lists, or robotic phrasing; make it read like casual human drafting.
+
+    Original text:
     {text}
-    
-    Ensure the final output reads as a perfect blend of clear information and genuine human expression.
+
+    Output only the rewritten text, nothing else.
     """
     
-    # Query Groq with the enhanced prompt
-    humanized_text = query_groq(prompt, api_key, temperature=temperature)
-    return humanized_text
+    # First pass: Initial humanization
+    first_pass = query_groq(initial_prompt, api_key, temperature=temperature)
+    if not first_pass:
+        return None
+    
+    # Second pass: Refinement for evasion
+    refinement_prompt = f"""
+    Refine this rewritten text to maximize human-likeness and bypass AI detection tools entirely. 
+    Focus on:
+    - Enhancing variability in phrasing and word choice to eliminate any detectable patterns.
+    - Adding more nuanced human elements: slight digressions, rhetorical questions, or emphatic expressions.
+    - Ensuring irregular punctuation use, mixed formality, and authentic voice.
+    - Making it feel like a human edited their own draft multiple times for natural flow.
+    - Keep meaning identical, but amplify imperfections and personality.
 
-# Function to implement additional humanization techniques
+    Text to refine:
+    {first_pass}
+
+    Output only the final refined text.
+    """
+    
+    # Second pass: Refine for better evasion
+    refined_text = query_groq(refinement_prompt, api_key, temperature=temperature + 0.1)  # Slightly higher temp for variability
+    return refined_text
+
+# Enhanced function for additional humanization techniques with more variations
 def additional_humanization(text, techniques):
     if not text:
         return text
         
-    # Tokenize the text into sentences
     sentences = sent_tokenize(text)
     
-    if "typos" in techniques and random.random() < 0.4:
+    # Expanded typos with more common errors
+    if "typos" in techniques and random.random() < 0.5:
         common_typos = {
-            "the": ["teh", "hte"],
-            "and": ["adn", "nad"],
-            "that": ["taht", "tht"],
-            "with": ["wtih", "wiht"],
-            "this": ["tihs", "thsi"],
-            "from": ["form", "fro"],
-            "have": ["ahve", "hvae"],
-            "would": ["woudl", "wuold"],
-            "could": ["cuold", "coudl"],
-            "their": ["thier", "theri"],
-            "there": ["tehre", "ther"],
-            "your": ["yoru", "yuor"],
-            "because": ["becuase", "becasue"]
+            "the": ["teh", "hte", "th"], "and": ["adn", "nad", "an"], "that": ["taht", "tht", "tha"], 
+            "with": ["wtih", "wiht", "wit"], "this": ["tihs", "thsi", "thi"], "from": ["form", "fro", "frm"],
+            "have": ["ahve", "hvae", "hav"], "would": ["woudl", "wuold", "wuld"], "could": ["cuold", "coudl", "coud"],
+            "their": ["thier", "theri", "thir"], "there": ["tehre", "ther", "thre"], "your": ["yoru", "yuor", "yur"],
+            "because": ["becuase", "becasue", "becuz"], "people": ["peopl", "pople"], "about": ["abotu", "abot"],
+            "which": ["wich", "whcih"], "they": ["tehy", "thy"], "what": ["waht", "wht"]
         }
         for i in range(len(sentences)):
-            if random.random() < 0.2:
+            if random.random() < 0.25:
                 words = sentences[i].split()
                 for j in range(len(words)):
-                    if words[j].lower() in common_typos and random.random() < 0.3:
+                    word_lower = words[j].lower().rstrip('.,!?;')
+                    if word_lower in common_typos and random.random() < 0.35:
+                        typo = random.choice(common_typos[word_lower])
                         if words[j][0].isupper():
-                            words[j] = random.choice(common_typos[words[j].lower()]).capitalize()
-                        else:
-                            words[j] = random.choice(common_typos[words[j].lower()])
+                            typo = typo.capitalize()
+                        words[j] = typo + words[j][len(word_lower):]
                 sentences[i] = ' '.join(words)
     
+    # Enhanced punctuation variation
     if "punctuation" in techniques:
         for i in range(len(sentences)):
-            if random.random() < 0.15:
-                if sentences[i].endswith('.'):
-                    sentences[i] = sentences[i][:-1] + '..'
-                elif sentences[i].endswith('!'):
-                    sentences[i] = sentences[i][:-1] + '!!'
-                elif sentences[i].endswith('?'):
-                    sentences[i] = sentences[i][:-1] + '??'
-                if len(sentences[i]) > 30 and random.random() < 0.5:
-                    words = sentences[i].split()
-                    if len(words) > 6:
-                        splice_point = random.randint(3, len(words) - 3)
-                        if not words[splice_point-1].endswith(',') and not words[splice_point-1].endswith(';'):
-                            words[splice_point-1] = words[splice_point-1] + (',' if random.random() < 0.7 else ';')
-                        sentences[i] = ' '.join(words)
+            if random.random() < 0.2:
+                end_punct = random.choice(['..', '...', '!!', '??', '!?', '?!']) if sentences[i][-1] in '.!?' else ''
+                sentences[i] = sentences[i].rstrip('.!?') + end_punct
+            if len(sentences[i]) > 40 and random.random() < 0.6:
+                words = sentences[i].split()
+                if len(words) > 8:
+                    splice_point = random.randint(4, len(words) - 4)
+                    if not words[splice_point-1].endswith((',', ';', ':')):
+                        punct = random.choice([',', ';', ':', ' -', ' --'])
+                        words[splice_point-1] += punct
+                    sentences[i] = ' '.join(words)
     
+    # Enhanced repetition with phrases
     if "repetition" in techniques:
+        for i in range(len(sentences)):
+            if random.random() < 0.15:
+                words = sentences[i].split()
+                if len(words) > 5:
+                    repeat_index = random.randint(0, len(words) - 2)
+                    phrase = ' '.join(words[repeat_index:repeat_index+2])
+                    if len(phrase) > 5 and not phrase.endswith((',', '.')):
+                        words.insert(repeat_index + 2, phrase)
+                    sentences[i] = ' '.join(words)
+    
+    # Enhanced formatting with more options
+    if "formatting" in techniques:
         for i in range(len(sentences)):
             if random.random() < 0.1:
                 words = sentences[i].split()
                 if len(words) > 4:
-                    repeat_index = random.randint(0, len(words) - 1)
-                    if len(words[repeat_index]) > 3 and not words[repeat_index].endswith((',', '.')):
-                        words.insert(repeat_index + 1, words[repeat_index])
-                        sentences[i] = ' '.join(words)
+                    emp_index = random.randint(0, len(words) - 1)
+                    if len(words[emp_index]) > 4 and not re.search(r'[.,:;!?]', words[emp_index]):
+                        style = random.choice(['upper', 'italic', 'bold'])
+                        if style == 'upper':
+                            words[emp_index] = words[emp_index].upper()
+                        elif style == 'italic':
+                            words[emp_index] = f"*{words[emp_index]}*"
+                        else:
+                            words[emp_index] = f"**{words[emp_index]}**"
+                    sentences[i] = ' '.join(words)
     
-    if "formatting" in techniques:
+    # New: Add random idioms or fillers
+    fillers = ["you know", "like", "sort of", "kind of", "actually", "basically", "I mean", "well", "so", "right"]
+    if random.random() < 0.3:
         for i in range(len(sentences)):
-            if random.random() < 0.05:
+            if random.random() < 0.2 and len(sentences[i].split()) > 5:
+                insert_point = random.randint(1, len(sentences[i].split()) - 1)
                 words = sentences[i].split()
-                if len(words) > 3:
-                    emphasis_index = random.randint(0, len(words) - 1)
-                    if len(words[emphasis_index]) > 3 and not re.search(r'[.,:;!?]', words[emphasis_index]):
-                        words[emphasis_index] = words[emphasis_index].upper()
-                        sentences[i] = ' '.join(words)
-            if random.random() < 0.08:
-                words = sentences[i].split()
-                if len(words) > 3:
-                    emphasis_index = random.randint(0, len(words) - 1)
-                    if len(words[emphasis_index]) > 3 and not re.search(r'[.,:;!?]', words[emphasis_index]):
-                        words[emphasis_index] = f"*{words[emphasis_index]}*" if random.random() < 0.5 else f"**{words[emphasis_index]}**"
-                        sentences[i] = ' '.join(words)
+                words.insert(insert_point, random.choice(fillers))
+                sentences[i] = ' '.join(words)
     
     return ' '.join(sentences)
 
@@ -192,8 +215,8 @@ if not api_key:
 
 st.sidebar.markdown("---")
 st.sidebar.title("Advanced Settings")
-st.sidebar.markdown("**Model:** llama-3.3-70b-versatile")
-st.sidebar.markdown("**Humanization Level:** Extreme (fixed)")
+st.sidebar.markdown("**Model:** llama-3.1-405b-reasoning")
+st.sidebar.markdown("**Humanization Level:** Ultimate (fixed)")
 
 # Temperature setting remains adjustable
 temperature = st.sidebar.slider("Temperature", min_value=0.1, max_value=1.0, value=0.8, step=0.1)
@@ -364,7 +387,7 @@ with tab3:
     st.markdown("""
     ## About AI Text Humanizer
     
-    This tool uses Groq's powerful **llama-3.3-70b-versatile** model to transform AI-generated text into highly natural, human-like writing.
+    This tool uses Groq's powerful **llama-3.1-405b-reasoning** model to transform AI-generated text into highly natural, human-like writing.
     It applies advanced humanization techniques including:
     
     - Restructuring sentences with varied structures
@@ -375,7 +398,7 @@ with tab3:
     ### How it works
     
     1. Your AI-generated text is sent to Groq's cloud API with your API key.
-    2. The llama-3.3-70b-versatile model rewrites the text using advanced humanization prompts.
+    2. The llama-3.1-405b-reasoning model rewrites the text using advanced humanization prompts.
     3. Additional post-processing techniques further refine the natural flow.
     4. The output maintains the original meaning but reads with genuine human expression.
     
@@ -403,8 +426,8 @@ with tab3:
     
     ### Model Information
     
-    **llama-3.3-70b-versatile** is one of the most advanced open models available, offering:
-    - 70 billion parameters for nuanced understanding
+    **llama-3.1-405b-reasoning** is one of the most advanced open models available, offering:
+    - 405 billion parameters for nuanced understanding
     - Excellent at maintaining context and meaning
     - Strong performance on text rewriting tasks
     - Fast inference times through Groq's infrastructure
